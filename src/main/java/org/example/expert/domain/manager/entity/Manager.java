@@ -35,8 +35,4 @@ public class Manager {
 		this.user = user;
 		this.todo = todo;
 	}
-
-	public boolean isTodoManager(long id) {
-		return todo.isTodo(id);
-	}
 }
