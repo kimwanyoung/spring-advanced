@@ -1,5 +1,7 @@
 package org.example.expert.domain.user.entity;
 
+import java.util.Objects;
+
 import org.example.expert.domain.common.dto.AuthUser;
 import org.example.expert.domain.common.entity.Timestamped;
 import org.example.expert.domain.user.enums.UserRole;
@@ -52,5 +54,9 @@ public class User extends Timestamped {
 
 	public void updateRole(UserRole userRole) {
 		this.userRole = userRole;
+	}
+
+	public boolean isSameUser(User otherUser) {
+		return Objects.equals(id, otherUser.id);
 	}
 }

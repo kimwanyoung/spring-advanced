@@ -17,7 +17,6 @@ import org.example.expert.domain.user.entity.User;
 import org.example.expert.domain.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.ObjectUtils;
 
 import lombok.RequiredArgsConstructor;
 
@@ -32,20 +31,17 @@ public class ManagerService {
 
 	@Transactional
 	public ManagerSaveResponse saveManager(AuthUser authUser, long todoId, ManagerSaveRequest managerSaveRequest) {
-		User managerUser = userRepository.findById(managerSaveRequest.getManagerUserId())
-			.orElseThrow(() -> new InvalidRequestException("등록하려고 하는 담당자 유저가 존재하지 않습니다."));
-
-		User user = User.fromAuthUser(authUser);
 		Todo todo = todoRepository.findById(todoId)
 			.orElseThrow(() -> new InvalidRequestException("Todo not found"));
 
-		if (!ObjectUtils.nullSafeEquals(user.getId(), todo.getUser().getId())) {
-			throw new InvalidRequestException("담당자를 등록하려고 하는 유저가 일정을 만든 유저가 유효하지 않습니다.");
-		}
+		todo.validateHasAuthor();
 
-		if (ObjectUtils.nullSafeEquals(user.getId(), managerUser.getId())) {
-			throw new InvalidRequestException("일정 작성자는 본인을 담당자로 등록할 수 없습니다.");
-		}
+		User managerUser = userRepository.findById(managerSaveRequest.getManagerUserId())
+			.orElseThrow(() -> new InvalidRequestException("등록하려고 하는 담당자 유저가 존재하지 않습니다."));
+		User loginUser = User.fromAuthUser(authUser);
+
+		todo.validateIsAuthor(loginUser);
+		todo.validateNotSelfAssignedAsManager(managerUser);
 
 		Manager newManagerUser = new Manager(managerUser, todo);
 		Manager savedManagerUser = managerRepository.save(newManagerUser);
@@ -80,17 +76,11 @@ public class ManagerService {
 
 		Todo todo = todoRepository.findById(todoId)
 			.orElseThrow(() -> new InvalidRequestException("Todo not found"));
-
-		if (todo.getUser() == null || !ObjectUtils.nullSafeEquals(user.getId(), todo.getUser().getId())) {
-			throw new InvalidRequestException("해당 일정을 만든 유저가 유효하지 않습니다.");
-		}
+		todo.validateIsAuthor(user);
 
 		Manager manager = managerRepository.findById(managerId)
 			.orElseThrow(() -> new InvalidRequestException("Manager not found"));
-
-		if (!ObjectUtils.nullSafeEquals(todo.getId(), manager.getTodo().getId())) {
-			throw new InvalidRequestException("해당 일정에 등록된 담당자가 아닙니다.");
-		}
+		todo.validateManagerExists(manager);
 
 		managerRepository.delete(manager);
 	}
